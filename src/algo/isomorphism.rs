@@ -748,6 +748,36 @@ mod matching {
                 stack,
             }
         }
+
+        /// Create a new GraphMatcher with a pre-specified partial mapping
+        pub fn with_partial_mapping(
+            g0: &'a G0,
+            g1: &'b G1,
+            node_match: &'c mut NM,
+            edge_match: &'c mut EM,
+            match_subgraph: bool,
+            induced_only: bool,
+            partial_mapping: &[(G0::NodeId, G1::NodeId)],
+        ) -> Self {
+            // Create a matcher with empty stacks first
+            let mut matcher = Self {
+                st: (Vf2State::new(g0), Vf2State::new(g1)),
+                node_match,
+                edge_match,
+                match_subgraph,
+                induced_only,
+                stack: vec![],
+            };
+            
+            // Apply the partial mapping
+            for &(n0, n1) in partial_mapping {
+                push_state(&mut matcher.st, (n0, n1));
+            }
+            
+            // Initialize the stack with the Outer frame to start the search
+            matcher.stack.push(Frame::Outer);
+            matcher
+        }
     }
 
     impl<G0, G1, NM, EM> Iterator for GraphMatcher<'_, '_, '_, G0, G1, NM, EM>
@@ -1056,5 +1086,43 @@ where
 
     Some(self::matching::GraphMatcher::new(
         g0, g1, node_match, edge_match, true, false,
+    ))
+}
+
+pub fn general_subgraph_monomorphisms_iter_with_partial_mapping<'a, G0, G1, NM, EM>(
+    g0: &'a G0,
+    g1: &'a G1,
+    node_match: &'a mut NM,
+    edge_match: &'a mut EM,
+    partial_mapping: &[(G0::NodeId, G1::NodeId)],
+) -> Option<impl Iterator<Item = Vec<usize>> + 'a>
+where
+    G0: 'a
+        + NodeCompactIndexable
+        + EdgeCount
+        + DataMap
+        + GetAdjacencyMatrix
+        + GraphProp
+        + IntoEdgesDirected,
+    G1: 'a
+        + NodeCompactIndexable
+        + EdgeCount
+        + DataMap
+        + GetAdjacencyMatrix
+        + GraphProp<EdgeType = G0::EdgeType>
+        + IntoEdgesDirected,
+    NM: 'a + FnMut(&G0::NodeWeight, &G1::NodeWeight) -> bool,
+    EM: 'a + FnMut(&G0::EdgeWeight, &G1::EdgeWeight) -> bool,
+{
+    if g0.node_count() > g1.node_count() || g0.edge_count() > g1.edge_count() {
+        return None;
+    }
+
+    // TODO: Add note that the provided partial mapping _must_ be a strict partial mapping. It may not be complete!
+    // Actually, test this. Due to the if statement at the beginning of isomorphisms(), it may be fine. Since we check for completeness.
+    // THOUGH! This might be a bug. It seems that that would just loop infinitely???
+
+    Some(self::matching::GraphMatcher::with_partial_mapping(
+        g0, g1, node_match, edge_match, true, false, partial_mapping,
     ))
 }
