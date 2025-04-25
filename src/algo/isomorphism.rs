@@ -627,6 +627,16 @@ mod matching {
         // Find least T1out node (in st.out[1] but not in M[1])
         let mut result = None;
         while let Some(frame) = stack.pop() {
+            // #[cfg(feature = "std")]
+            // {
+            //     std::println!("iter, partial mapping: {:?}", st.0.mapping);
+            //     let frame_kind = match frame {
+            //         Frame::Outer => "Outer",
+            //         Frame::Inner { .. } => "Inner",
+            //         Frame::Unwind { .. } => "Unwind",
+            //     };
+            //     std::println!("frame: {}", frame_kind);
+            // }
             match frame {
                 Frame::Unwind { nodes, open_list } => {
                     pop_state(st, nodes);
