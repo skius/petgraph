@@ -1,7 +1,7 @@
 [package]
 
-name = "petgraph"
-version = "0.8.1"
+name = "grabapl_temp_petgraph_crate_not_namesquatting_i_promise"
+version = "0.0.0"
 readme = "README.md"
 license = "MIT OR Apache-2.0"
 authors = { workspace = true }
