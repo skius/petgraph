@@ -55,6 +55,7 @@ where
     graph: G,
     get_edge_attributes: &'a dyn Fn(G, G::EdgeRef) -> String,
     get_node_attributes: &'a dyn Fn(G, G::NodeRef) -> String,
+    get_node_index: Option<&'a dyn Fn(G, G::NodeId) -> String>,
     config: Configs,
 }
 
@@ -90,6 +91,25 @@ where
             graph,
             get_edge_attributes,
             get_node_attributes,
+            get_node_index: None,
+            config,
+        }
+    }
+
+    #[inline]
+    pub fn with_attr_getters_and_index_getter(
+        graph: G,
+        config: &'a [Config],
+        get_edge_attributes: &'a dyn Fn(G, G::EdgeRef) -> String,
+        get_node_attributes: &'a dyn Fn(G, G::NodeRef) -> String,
+        get_node_index: &'a dyn Fn(G, G::NodeId) -> String,
+    ) -> Self {
+        let config = Configs::extract(config);
+        Dot {
+            graph,
+            get_edge_attributes,
+            get_node_attributes,
+            get_node_index: Some(get_node_index),
             config,
         }
     }
@@ -174,6 +194,13 @@ where
             writeln!(f, "{} {{", TYPE[g.is_directed() as usize])?;
         }
 
+        let index_of_node: &dyn Fn(G, G::NodeId) -> String =
+            if let Some(get_node_index) = &self.get_node_index {
+                &|g: G, id: G::NodeId| alloc::format!("{}", get_node_index(g, id))
+            } else {
+                &|g: G, id: G::NodeId| alloc::format!("{}", g.to_index(id))
+            };
+
         if let Some(rank_dir) = &self.config.RankDir {
             let value = match rank_dir {
                 RankDir::TB => "TB",
@@ -186,11 +213,11 @@ where
 
         // output all labels
         for node in g.node_references() {
-            write!(f, "{}{} [ ", INDENT, g.to_index(node.id()),)?;
+            write!(f, "{}{} [ ", INDENT, index_of_node(g, node.id()))?;
             if !self.config.NodeNoLabel {
                 write!(f, "label = \"")?;
                 if self.config.NodeIndexLabel {
-                    write!(f, "{}", g.to_index(node.id()))?;
+                    write!(f, "{}", index_of_node(g, node.id()))?;
                 } else {
                     Escaped(FnFmt(node.weight(), &node_fmt)).fmt(f)?;
                 }
@@ -204,9 +231,9 @@ where
                 f,
                 "{}{} {} {} [ ",
                 INDENT,
-                g.to_index(edge.source()),
+                index_of_node(g, edge.source()),
                 EDGE[g.is_directed() as usize],
-                g.to_index(edge.target()),
+                index_of_node(g, edge.target()),
             )?;
             if !self.config.EdgeNoLabel {
                 write!(f, "label = \"")?;

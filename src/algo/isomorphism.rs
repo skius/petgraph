@@ -778,12 +778,12 @@ mod matching {
                 induced_only,
                 stack: vec![],
             };
-            
+
             // Apply the partial mapping
             for &(n0, n1) in partial_mapping {
                 push_state(&mut matcher.st, (n0, n1));
             }
-            
+
             // Initialize the stack with the Outer frame to start the search
             matcher.stack.push(Frame::Outer);
             matcher
@@ -1133,6 +1133,12 @@ where
     // THOUGH! This might be a bug. It seems that that would just loop infinitely???
 
     Some(self::matching::GraphMatcher::with_partial_mapping(
-        g0, g1, node_match, edge_match, true, false, partial_mapping,
+        g0,
+        g1,
+        node_match,
+        edge_match,
+        true,
+        false,
+        partial_mapping,
     ))
 }
